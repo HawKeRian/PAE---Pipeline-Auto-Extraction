@@ -1,0 +1,20 @@
+# Runtime — FastAPI provides the typed HTTP API; Uvicorn serves the ASGI app.
+fastapi==0.141.1
+uvicorn==0.54.0
+
+# Runtime configuration — validates environment-based settings.
+pydantic-settings==2.15.0
+
+# Test and coverage — HTTPX is required by FastAPI/Starlette TestClient.
+httpx==0.28.1
+pytest==9.1.1
+pytest-cov==7.1.0
+
+# Code quality and local workflow.
+ruff==0.16.9
+mypy==2.3.1
+pre-commit==4.6.2
+
+# Security checks for committed secrets and Python dependencies.
+detect-secrets==1.5.0
+pip-audit==2.10.1

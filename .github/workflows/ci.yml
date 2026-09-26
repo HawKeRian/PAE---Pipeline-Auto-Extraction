@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Lint
+        run: ruff check .
+      - name: Format
+        run: ruff format --check .
+      - name: Type check
+        run: mypy
+      - name: Test
+        run: pytest
+      - name: Check committed secrets
+        run: detect-secrets scan --all-files --exclude-files '^\.git/'
+      - name: Audit dependencies
+        run: pip-audit -r requirements.txt
