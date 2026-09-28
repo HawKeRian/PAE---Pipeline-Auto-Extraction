@@ -19,6 +19,9 @@
 | Security | Critical/High findings before release | 0 open |
 | Secret handling | Secrets in logs/artifacts/tests | 0 occurrences |
 | Retention | Expired temporary samples removed | 100% in retention tests |
+| Folder discovery | Matching files are processed once in deterministic order | 100% in batch fixture suite |
+| Schema compatibility | Missing required/incompatible fields follow confirmed failure policy | 100% in compatibility suite |
+| Repeat execution | Re-running with unchanged files/state produces no duplicate effective output | 100% in idempotency suite |
 | Test coverage | Core domain/specification/generator modules | ≥ 90% line coverage; project overall ≥ 80% |
 
 ## Reference Machine

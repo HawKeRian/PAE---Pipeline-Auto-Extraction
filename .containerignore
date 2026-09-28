@@ -1,0 +1,10 @@
+.git
+.env
+data
+generated
+.pytest_cache
+.mypy_cache
+.ruff_cache
+__pycache__
+reports
+human_note.md

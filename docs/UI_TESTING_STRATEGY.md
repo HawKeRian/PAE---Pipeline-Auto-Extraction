@@ -7,7 +7,7 @@
 ## Approach
 
 - ใช้ FastAPI เป็น backend และ entry point เดิม
-- เลือก server-rendered UI/HTMX เป็นแนวทางเริ่มต้น เพื่อคง Python เป็นแกนหลักและลด build toolchain
+- ใช้ Jinja2 server-rendered UI และ vanilla JavaScript เป็น foundation แรก เพื่อคง Python เป็นแกนหลักและลด build toolchain; พิจารณา HTMX เมื่อเริ่มเชื่อม partial backend interactions
 - ใช้ synthetic fixtures และ deterministic stubs เท่านั้นใน Early Test UI
 - ทุกหน้าต้องแสดง `Prototype / Mock Data` banner เมื่อยังไม่เชื่อม service จริง
 - แยก mock provider ออกจาก production interface และเปิดได้เฉพาะ development/testing configuration
@@ -17,7 +17,7 @@
 
 1. Project Dashboard
 2. Source Input
-3. Schema Analysis and Confirmation
+3. File Profiling, Column Suggestions and User Confirmation
 4. Requirement Input
 5. Field Mapping and Rule Editor
 6. Before/After Preview
@@ -35,6 +35,7 @@
 ## Usability Checks
 
 - ผู้ทดสอบรู้ว่าส่วนใดเป็นค่าที่ระบบตรวจพบ, AI suggestion และค่าที่ผู้ใช้ยืนยัน
+- ระบบต้องอ่าน header/sample และแนะนำ column พร้อมเหตุผลก่อนให้ผู้ใช้เลือกหรือแก้ไข
 - ผู้ทดสอบย้อนกลับไปแก้ไขขั้นก่อนหน้าได้
 - ผู้ทดสอบเข้าใจ error/warning และรู้ว่าต้องแก้อะไร
 - ผู้ทดสอบไม่เข้าใจผิดว่า mock validation หรือ generated code พร้อม production

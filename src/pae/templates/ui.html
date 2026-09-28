@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ app_name }} — Early Test UI</title>
+    <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', path='/ui.css') }}">
+    <script src="{{ url_for('static', path='/ui.js') }}" defer></script>
+  </head>
+  <body>
+    <div class="prototype-banner" role="status">
+      <span class="pulse-dot" aria-hidden="true"></span>
+      <strong>Prototype / Mock Data</strong>
+      <span>หน้าจอนี้ใช้ข้อมูลสังเคราะห์เพื่อทดสอบขั้นตอนเท่านั้น — ยังไม่ประมวลผลข้อมูลจริง</span>
+    </div>
+
+    <header class="topbar">
+      <a class="brand" href="/ui" aria-label="Pipeline Auto Extraction home">
+        <span class="brand-mark">P</span>
+        <span>
+          <strong>Pipeline Auto Extraction</strong>
+          <small>Turn requirements into reliable pipelines</small>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <span class="environment-chip">{{ environment }}</span>
+        <button class="icon-button" type="button" aria-label="Help">?</button>
+        <div class="avatar" aria-label="Demo user">DU</div>
+      </div>
+    </header>
+
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="ขั้นตอนการสร้าง Pipeline">
+        <div class="sidebar-heading">
+          <span>WORKFLOW</span>
+          <small id="progress-text">1 / 10</small>
+        </div>
+        <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+        <nav id="step-nav">
+          <button class="step-link active" type="button" data-step-target="1"><span>01</span><div>Project<small>เริ่มต้นโปรเจกต์</small></div></button>
+          <button class="step-link" type="button" data-step-target="2"><span>02</span><div>Source<small>เลือกข้อมูลต้นทาง</small></div></button>
+          <button class="step-link" type="button" data-step-target="3"><span>03</span><div>Schema<small>ตรวจโครงสร้างข้อมูล</small></div></button>
+          <button class="step-link" type="button" data-step-target="4"><span>04</span><div>Requirement<small>บอกสิ่งที่ต้องการ</small></div></button>
+          <button class="step-link" type="button" data-step-target="5"><span>05</span><div>Rules<small>ยืนยันกฎการแปลง</small></div></button>
+          <button class="step-link" type="button" data-step-target="6"><span>06</span><div>Preview<small>ตรวจผลก่อนและหลัง</small></div></button>
+          <button class="step-link" type="button" data-step-target="7"><span>07</span><div>Target<small>เลือกภาษาเป้าหมาย</small></div></button>
+          <button class="step-link" type="button" data-step-target="8"><span>08</span><div>Generated<small>ดู Code และ README</small></div></button>
+          <button class="step-link" type="button" data-step-target="9"><span>09</span><div>Validation<small>ตรวจสอบผลลัพธ์</small></div></button>
+          <button class="step-link" type="button" data-step-target="10"><span>10</span><div>Export<small>รับ Package</small></div></button>
+        </nav>
+        <div class="sidebar-note"><strong>Early Test UI</strong><p>ทุกผลลัพธ์เป็น deterministic mock และไม่มีข้อมูลจริง</p></div>
+      </aside>
+
+      <main class="workspace">
+        <section class="step-panel active" data-step="1" aria-labelledby="step-1-title">
+          <div class="eyebrow">STEP 01 · PROJECT</div>
+          <div class="page-heading"><div><h1 id="step-1-title">เริ่ม Pipeline ใหม่</h1><p>ตั้งชื่อสิ่งที่ต้องการสร้าง เพื่อให้ติดตาม specification และ output ได้ง่าย</p></div><span class="status-pill draft">Draft</span></div>
+          <div class="grid two-columns">
+            <article class="card accent-card">
+              <div class="card-icon">01</div><h2>Customer Active Transactions</h2><p>แปลงรายการธุรกรรมลูกค้าให้เป็นข้อมูลมาตรฐานสำหรับระบบวิเคราะห์</p>
+              <dl class="metadata"><div><dt>Source</dt><dd>Synthetic CSV</dd></div><div><dt>Target</dt><dd>Python</dd></div><div><dt>Updated</dt><dd>Just now</dd></div></dl>
+              <button class="primary-button" type="button" data-next>เริ่มทดสอบ Workflow <span>→</span></button>
+            </article>
+            <article class="card new-project-card"><span class="plus">+</span><h2>สร้าง Project ใหม่</h2><p>Prototype นี้ใช้ project ตัวอย่างหนึ่งรายการเพื่อให้ทดลองครบ flow ได้ทันที</p><button class="secondary-button" type="button" data-toast="Prototype ใช้ project ตัวอย่างเพียงรายการเดียว">สร้าง Project</button></article>
+          </div>
+          <div class="info-callout"><strong>สิ่งที่กำลังทดสอบ</strong><span>ผู้ใช้เข้าใจความสัมพันธ์ระหว่าง Project, Source, Specification และ Generated Package หรือไม่</span></div>
+        </section>
+
+        <section class="step-panel" data-step="2" aria-labelledby="step-2-title">
+          <div class="eyebrow">STEP 02 · SOURCE INPUT</div><div class="page-heading"><div><h1 id="step-2-title">เลือกข้อมูลต้นทาง</h1><p>หลังเลือกไฟล์ ระบบจะอ่าน header และ sample เพื่อทำ profiling ก่อนเสนอ column ให้คุณเลือก</p></div><span class="status-pill mock">Mock connector</span></div>
+          <div class="source-tabs"><button class="source-tab active" type="button">File upload</button><button class="source-tab" type="button" data-toast="Database connector จะเชื่อมใน Phase 6">Database</button></div>
+          <label class="upload-zone" for="source-file"><span class="upload-icon">⇧</span><strong>ลาก CSV มาวาง หรือเลือกไฟล์</strong><small id="file-label">รองรับ CSV สูงสุด 100 MB · Prototype จะไม่อ่านหรือส่งไฟล์</small><input id="source-file" type="file" accept=".csv,text/csv"></label>
+          <article class="card compact-card"><div><span class="file-badge">CSV</span><strong>customer_transactions_synthetic.csv</strong><small>4 records · 6 columns · ข้อมูลสังเคราะห์</small></div><span class="status-pill ready">Ready</span></article>
+          <div class="analysis-sequence" aria-label="ลำดับการวิเคราะห์ไฟล์"><div><span>1</span><strong>อ่านไฟล์</strong><small>Header + sample</small></div><i>→</i><div><span>2</span><strong>Profile</strong><small>Type + quality</small></div><i>→</i><div><span>3</span><strong>Suggest</strong><small>Column + เหตุผล</small></div><i>→</i><div><span>4</span><strong>User confirms</strong><small>เลือกและแก้ไข</small></div></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← ย้อนกลับ</button><button class="primary-button" type="button" data-analyze>อ่านไฟล์และแนะนำ Column <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="3" aria-labelledby="step-3-title">
+          <div class="eyebrow">STEP 03 · PROFILE & COLUMN SUGGESTION</div><div class="page-heading"><div><h1 id="step-3-title">ระบบอ่านไฟล์และแนะนำ Column แล้ว</h1><p>ตรวจคำแนะนำและเหตุผลก่อนเลือกใช้ คุณสามารถเพิ่ม ตัดออก เปลี่ยนชื่อ หรือแก้ชนิดข้อมูลได้</p></div><span class="status-pill ready">Analysis completed</span></div>
+          <div class="suggestion-callout"><div class="suggestion-mark">✦</div><div><strong>ระบบแนะนำให้ใช้ 5 จาก 6 columns</strong><p>4 columns เกี่ยวข้องกับ identity, metric, time และ filter; email ต้องตรวจเรื่องข้อมูลส่วนบุคคล ส่วน notes แนะนำให้ตัดออก</p></div></div>
+          <div class="summary-strip"><div><strong>6</strong><span>Columns found</span></div><div><strong>4</strong><span>Recommended</span></div><div><strong>1</strong><span>Needs review</span></div><div><strong>1</strong><span>Suggested exclude</span></div></div>
+          <div class="table-card"><table><thead><tr><th>เลือก</th><th>Source column</th><th>คำแนะนำของระบบ</th><th>ตรวจพบ</th><th>Output field</th><th>ยืนยัน type</th><th>ตัวอย่าง / คำเตือน</th></tr></thead><tbody>{% for field in fields %}<tr><td><input type="checkbox" {% if field.selected %}checked{% endif %} aria-label="ใช้ field {{ field.name }}"></td><td><code>{{ field.name }}</code></td><td><span class="recommendation-chip {{ field.recommendation|lower }}">{{ field.recommendation }}</span><small>{{ field.recommendation_reason }}</small></td><td><span class="type-chip">{{ field.inferred_type }}</span><small>{{ field.confidence }}</small></td><td><input class="table-input" value="{{ field.output_name }}" aria-label="Output name for {{ field.name }}"></td><td><select aria-label="Output type for {{ field.name }}"><option selected>{{ field.output_type }}</option><option>String</option><option>Decimal</option><option>Date</option></select></td><td><span>{{ field.example }}</span>{% if field.warning %}<small class="warning-text">{{ field.warning }}</small>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← ย้อนกลับ</button><button class="primary-button" type="button" data-next>ยืนยัน Schema <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="4" aria-labelledby="step-4-title">
+          <div class="eyebrow">STEP 04 · REQUIREMENT</div><div class="page-heading"><div><h1 id="step-4-title">บอกผลลัพธ์ที่ต้องการ</h1><p>เขียนเป็นภาษาไทยหรืออังกฤษ ระบบจริงจะใช้ Local Llama แปลงเป็น structured rules</p></div><span class="status-pill mock">AI stub</span></div>
+          <div class="requirement-layout"><div><label class="field-label" for="requirement">ความต้องการของคุณ</label><textarea id="requirement" rows="10">เลือกเฉพาะรายการที่สถานะเป็น ACTIVE เปลี่ยน cust_id เป็น customer_id แปลง amount เป็นตัวเลข ตัดรายการซ้ำ และปกปิดอีเมลก่อนส่งออก</textarea><div class="textarea-footer"><span>ภาษาไทย · 143 ตัวอักษร</span><button class="text-button" type="button" data-toast="ตัวอย่างถูกใส่ไว้ให้แล้ว">ใช้ตัวอย่าง</button></div></div><aside class="card guidance-card"><h2>ช่วยให้ AI เข้าใจได้ดีขึ้น</h2><ul><li>ระบุ field หรือเงื่อนไขให้ชัดเจน</li><li>บอกว่าจะจัดการค่า null อย่างไร</li><li>ระบุรูปแบบ output ที่ต้องการ</li></ul><div class="security-note"><strong>Local-first</strong><span>Phase 3 จะประเมิน Llama ในเครื่องก่อนดาวน์โหลด model เพิ่ม</span></div></aside></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← ย้อนกลับ</button><button class="primary-button" type="button" data-next>แปลงเป็น Rules <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="5" aria-labelledby="step-5-title">
+          <div class="eyebrow">STEP 05 · TRANSFORMATION RULES</div><div class="page-heading"><div><h1 id="step-5-title">ตรวจ Rules ก่อนยืนยัน</h1><p>สีของสถานะบอกว่าข้อใดมาจากผู้ใช้ ข้อใดเป็นคำแนะนำ และข้อใดต้องตัดสินใจ</p></div><span class="status-pill warning">1 needs review</span></div>
+          <div class="rule-list">{% for rule in rules %}<article class="rule-card"><span class="drag-handle">⠿</span><div><h2>{{ rule.title }}</h2><p>{{ rule.description }}</p></div><span class="rule-state {{ rule.state|lower|replace(' ', '-') }}">{{ rule.state }}</span><button class="icon-button" type="button" aria-label="แก้ไข {{ rule.title }}" data-toast="เปิด Rule Editor จำลอง">⋯</button></article>{% endfor %}</div>
+          <button class="dashed-button" type="button" data-toast="เพิ่ม Rule จำลอง">+ เพิ่ม Rule</button>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← ย้อนกลับ</button><button class="primary-button" type="button" data-next>ยืนยัน Specification <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="6" aria-labelledby="step-6-title">
+          <div class="eyebrow">STEP 06 · PREVIEW</div><div class="page-heading"><div><h1 id="step-6-title">เปรียบเทียบก่อนและหลัง</h1><p>Prototype ใช้ expected fixture เดียวกับที่ generator tests จะใช้ในอนาคต</p></div><span class="status-pill ready">Preview ready</span></div>
+          <div class="preview-grid"><article><h2>ก่อนแปลง <small>4 records</small></h2><div class="table-card"><table><thead><tr><th>cust_id</th><th>amount</th><th>created_at</th><th>status</th><th>email</th><th>notes</th></tr></thead><tbody>{% for row in source_rows %}<tr>{% for value in row %}<td>{{ value }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></article><article><h2>หลังแปลง <small>2 records</small></h2><div class="table-card success-table"><table><thead><tr><th>customer_id</th><th>total_amount</th><th>transaction_date</th><th>email_masked</th></tr></thead><tbody>{% for row in output_rows %}<tr>{% for value in row %}<td>{{ value }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></article></div>
+          <div class="impact-cards"><div><strong>2</strong><span>Output records</span></div><div><strong>1</strong><span>Filtered inactive</span></div><div><strong>1</strong><span>Duplicate removed</span></div><div><strong>0</strong><span>Rejected</span></div></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← แก้ไข Rules</button><button class="primary-button" type="button" data-next>เลือก Target <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="7" aria-labelledby="step-7-title">
+          <div class="eyebrow">STEP 07 · TARGET</div><div class="page-heading"><div><h1 id="step-7-title">เลือก Code ที่ต้องการ</h1><p>Capability ที่ยังไม่รองรับจริงต้องถูกปฏิเสธก่อน generation</p></div></div>
+          <div class="language-grid"><label class="language-card selected"><input type="radio" name="language" value="python" checked><span class="language-mark python">Py</span><strong>Python</strong><small>Primary · pandas-style pipeline</small><span class="recommended">Recommended</span></label><label class="language-card"><input type="radio" name="language" value="sql"><span class="language-mark sql">SQL</span><strong>PostgreSQL</strong><small>Dialect-specific query</small></label><label class="language-card"><input type="radio" name="language" value="javascript"><span class="language-mark js">JS</span><strong>Node.js</strong><small>Deferred in prototype</small></label></div>
+          <div class="card option-card"><div><label class="field-label" for="output-format">Output format</label><select id="output-format"><option>CSV</option><option>JSON Lines</option><option>Parquet</option></select></div><div><label class="field-label" for="error-policy">เมื่อข้อมูลไม่ผ่าน Validation</label><select id="error-policy"><option>แยกเป็น rejected records</option><option>หยุดการทำงาน</option></select></div></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← ย้อนกลับ</button><button class="primary-button" type="button" data-next>สร้าง Prototype Code <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="8" aria-labelledby="step-8-title">
+          <div class="eyebrow">STEP 08 · GENERATED OUTPUT</div><div class="page-heading"><div><h1 id="step-8-title">ตรวจ Code และ README</h1><p>ตัวอย่างนี้เป็น mock artifact ที่สร้างแบบ deterministic ไม่ได้มาจาก AI</p></div><span class="status-pill mock">Mock artifact</span></div>
+          <div class="code-shell"><div class="code-toolbar"><div><button class="code-tab active" type="button" data-code-tab="code">pipeline.py</button><button class="code-tab" type="button" data-code-tab="readme">README.md</button></div><button class="copy-button" type="button" data-copy>คัดลอก</button></div><pre id="code-preview"><code data-code-content="code">{{ python_preview }}</code><code data-code-content="readme" hidden>{{ readme_preview }}</code></pre></div>
+          <div class="artifact-list"><div><span>PY</span><strong>src/pipeline.py</strong><small>Transformation entry point</small></div><div><span>MD</span><strong>README.md</strong><small>Setup and usage guide</small></div><div><span>{ }</span><strong>pipeline-spec.json</strong><small>Confirmed mock specification</small></div><div><span>{ }</span><strong>artifact-manifest.json</strong><small>Prototype safety metadata</small></div></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← เปลี่ยน Target</button><button class="primary-button" type="button" data-next>ตรวจสอบ Package <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="9" aria-labelledby="step-9-title">
+          <div class="eyebrow">STEP 09 · VALIDATION</div><div class="page-heading"><div><h1 id="step-9-title">Validation Summary</h1><p>สถานะในหน้านี้เป็นผลจำลองและต้องไม่ถูกตีความว่าเป็น production validation</p></div><span class="status-pill mock">Simulated</span></div>
+          <div class="job-simulator" aria-live="polite">
+            <div class="job-heading"><div><strong>Generation job simulator</strong><small id="job-message">พร้อมจำลองการสร้างและตรวจ package</small></div><span id="job-state" class="status-pill draft">Idle</span></div>
+            <div class="job-progress" aria-label="Mock job progress"><span id="job-progress-bar"></span></div>
+            <div class="job-actions"><button id="job-run" class="secondary-button" type="button">เริ่มจำลอง</button><button id="job-cancel" class="text-button" type="button" disabled>ยกเลิก</button><button id="job-retry" class="text-button" type="button" hidden>ลองใหม่</button></div>
+          </div>
+          <div class="validation-hero"><div class="validation-ring"><span>4/4</span><small>mock checks</small></div><div><h2>Prototype checks completed</h2><p>Package ตัวอย่างไม่มี credential หรือ raw source sample และมีไฟล์ประกอบครบ</p></div></div>
+          <div class="check-list"><div><span class="check">✓</span><div><strong>Specification schema</strong><small>Mock structure is valid</small></div><span>Passed</span></div><div><span class="check">✓</span><div><strong>Python syntax</strong><small>Shown as simulated in the prototype</small></div><span>Simulated</span></div><div><span class="check">✓</span><div><strong>Secret scan</strong><small>No credentials in mock archive</small></div><span>Passed</span></div><div><span class="check">✓</span><div><strong>Source sample policy</strong><small>Raw source rows are excluded</small></div><span>Passed</span></div></div>
+          <div class="warning-callout"><strong>ยังไม่ใช่ Production Reviewed</strong><span>Phase 9–13 จะเชื่อม execution sandbox, generators และ validation evidence จริง</span></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← ดู Code</button><button class="primary-button" type="button" data-next>ไปหน้า Export <span>→</span></button></div>
+        </section>
+
+        <section class="step-panel" data-step="10" aria-labelledby="step-10-title">
+          <div class="eyebrow">STEP 10 · EXPORT</div><div class="page-heading"><div><h1 id="step-10-title">Prototype Package พร้อมแล้ว</h1><p>ดาวน์โหลด ZIP จำลองเพื่อทดสอบความคาดหวังต่อโครงสร้างไฟล์</p></div><span class="status-pill ready">Ready to test</span></div>
+          <div class="completion-card"><div class="completion-mark">✓</div><h2>Customer Active Transactions</h2><p>Python · CSV output · 4 files · ไม่มี credential หรือ raw sample data</p><a class="primary-button download-button" href="/ui/mock-export">ดาวน์โหลด Mock Package <span>↓</span></a><small>ไฟล์นี้มี header `prototype-mock` และห้ามใช้ใน production</small></div>
+          <div class="export-summary"><div><span>Specification</span><strong>Confirmed mock</strong></div><div><span>Validation</span><strong>Simulated + safety checks</strong></div><div><span>Artifact version</span><strong>prototype-0.1</strong></div></div>
+          <div class="feedback-card"><div><h2>ขั้นตอนไหนยังไม่ชัดเจน?</h2><p>บันทึก feedback ก่อนเชื่อม backend service จริง</p></div><button class="secondary-button" type="button" data-toast="บันทึก feedback จำลองแล้ว">ส่ง Feedback</button></div>
+          <div class="step-actions"><button class="text-button" type="button" data-back>← ย้อนกลับ</button><button class="secondary-button" type="button" data-go-first>เริ่ม Flow ใหม่</button></div>
+        </section>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

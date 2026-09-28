@@ -1,0 +1,14 @@
+[
+  {"name":"include","rows":[{"a":1,"b":2}],"rule":{"rule_id":"r","order":1,"kind":"include","inputs":["a"],"parameters":{}},"expected":[{"a":1}]},
+  {"name":"exclude","rows":[{"a":1,"b":2}],"rule":{"rule_id":"r","order":1,"kind":"exclude","inputs":["b"],"parameters":{}},"expected":[{"a":1}]},
+  {"name":"rename","rows":[{"a":1}],"rule":{"rule_id":"r","order":1,"kind":"rename","inputs":["a"],"output":"renamed","parameters":{}},"expected":[{"renamed":1}]},
+  {"name":"cast","rows":[{"a":"12.50"}],"rule":{"rule_id":"r","order":1,"kind":"cast","inputs":["a"],"parameters":{"type":"decimal"}},"expected":[{"a":"12.50"}]},
+  {"name":"filter","rows":[{"a":1},{"a":2}],"rule":{"rule_id":"r","order":1,"kind":"filter","inputs":["a"],"parameters":{"operator":"gte","value":2}},"expected":[{"a":2}]},
+  {"name":"sort","rows":[{"a":null},{"a":1},{"a":2}],"rule":{"rule_id":"r","order":1,"kind":"sort","inputs":["a"],"parameters":{"direction":"descending","nulls":"last"}},"expected":[{"a":2},{"a":1},{"a":null}]},
+  {"name":"deduplicate","rows":[{"a":1,"v":"first"},{"a":1,"v":"last"}],"rule":{"rule_id":"r","order":1,"kind":"deduplicate","inputs":["a"],"parameters":{"keys":["a"],"survivor":"last"}},"expected":[{"a":1,"v":"last"}]},
+  {"name":"replace","rows":[{"a":"old"}],"rule":{"rule_id":"r","order":1,"kind":"replace","inputs":["a"],"parameters":{"old":"old","new":"new"}},"expected":[{"a":"new"}]},
+  {"name":"handle_null","rows":[{"a":null}],"rule":{"rule_id":"r","order":1,"kind":"handle_null","inputs":["a"],"parameters":{"value":"unknown"}},"expected":[{"a":"unknown"}]},
+  {"name":"derive","rows":[{"a":"A","b":"B"}],"rule":{"rule_id":"r","order":1,"kind":"derive","inputs":["a","b"],"output":"c","parameters":{"operation":"concat","separator":"-"}},"expected":[{"a":"A","b":"B","c":"A-B"}]},
+  {"name":"aggregate","rows":[{"g":"x","a":1},{"g":"x","a":2}],"rule":{"rule_id":"r","order":1,"kind":"aggregate","inputs":["a"],"output":"total","parameters":{"function":"sum","group_by":["g"]}},"expected":[{"g":"x","total":"3"}]},
+  {"name":"mask","rows":[{"email":"alice@example.com"}],"rule":{"rule_id":"r","order":1,"kind":"mask","inputs":["email"],"parameters":{"strategy":"email"}},"expected":[{"email":"a***@example.com"}]}
+]

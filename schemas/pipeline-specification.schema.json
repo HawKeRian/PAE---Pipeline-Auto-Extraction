@@ -1,0 +1,892 @@
+{
+  "$defs": {
+    "DataType": {
+      "enum": [
+        "string",
+        "integer",
+        "decimal",
+        "boolean",
+        "date",
+        "datetime",
+        "json"
+      ],
+      "title": "DataType",
+      "type": "string"
+    },
+    "DatabaseSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "database",
+          "default": "database",
+          "title": "Kind",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "database_type": {
+          "enum": [
+            "postgresql",
+            "mysql",
+            "sql_server"
+          ],
+          "title": "Database Type",
+          "type": "string"
+        },
+        "connection_ref": {
+          "description": "Reference to a secret-managed connection; never a password or connection URI.",
+          "minLength": 1,
+          "title": "Connection Ref",
+          "type": "string"
+        },
+        "schema_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Name"
+        },
+        "object_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Name"
+        },
+        "read_only_query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Read Only Query"
+        },
+        "sample_limit": {
+          "default": 10000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Sample Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "database_type",
+        "connection_ref"
+      ],
+      "title": "DatabaseSource",
+      "type": "object"
+    },
+    "ErrorPolicy": {
+      "enum": [
+        "reject_record",
+        "fail_job"
+      ],
+      "title": "ErrorPolicy",
+      "type": "string"
+    },
+    "FieldDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_name": {
+          "minLength": 1,
+          "title": "Source Name",
+          "type": "string"
+        },
+        "target_name": {
+          "minLength": 1,
+          "title": "Target Name",
+          "type": "string"
+        },
+        "inferred_type": {
+          "$ref": "#/$defs/DataType"
+        },
+        "confirmed_type": {
+          "$ref": "#/$defs/DataType"
+        },
+        "nullable": {
+          "title": "Nullable",
+          "type": "boolean"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "selected": {
+          "default": true,
+          "title": "Selected",
+          "type": "boolean"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "null_percentage": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Null Percentage",
+          "type": "number"
+        },
+        "distinct_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Distinct Count"
+        },
+        "pii_classification": {
+          "$ref": "#/$defs/PiiClassification",
+          "default": "none"
+        },
+        "samples_masked": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Samples Masked",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_id",
+        "source_name",
+        "target_name",
+        "inferred_type",
+        "confirmed_type",
+        "nullable",
+        "confidence",
+        "null_percentage"
+      ],
+      "title": "FieldDefinition",
+      "type": "object"
+    },
+    "FileDiscoveryContract": {
+      "additionalProperties": false,
+      "description": "Reusable runtime contract for discovering future files in a folder.",
+      "properties": {
+        "mode": {
+          "const": "folder_batch",
+          "default": "folder_batch",
+          "title": "Mode",
+          "type": "string"
+        },
+        "input_directory_parameter": {
+          "default": "input_dir",
+          "title": "Input Directory Parameter",
+          "type": "string"
+        },
+        "filename_pattern": {
+          "default": "*.csv",
+          "minLength": 1,
+          "title": "Filename Pattern",
+          "type": "string"
+        },
+        "recursive": {
+          "default": false,
+          "title": "Recursive",
+          "type": "boolean"
+        },
+        "discovery_order": {
+          "const": "path_ascending",
+          "default": "path_ascending",
+          "title": "Discovery Order",
+          "type": "string"
+        },
+        "schema_policy": {
+          "$ref": "#/$defs/SchemaCompatibilityPolicy",
+          "default": "strict"
+        },
+        "failure_policy": {
+          "$ref": "#/$defs/FileFailurePolicy",
+          "default": "quarantine"
+        },
+        "processed_tracking": {
+          "$ref": "#/$defs/ProcessedFileTracking",
+          "default": "manifest"
+        },
+        "processed_manifest_parameter": {
+          "default": "state_file",
+          "title": "Processed Manifest Parameter",
+          "type": "string"
+        },
+        "quarantine_directory_parameter": {
+          "default": "quarantine_dir",
+          "title": "Quarantine Directory Parameter",
+          "type": "string"
+        },
+        "archive_directory_parameter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Archive Directory Parameter"
+        }
+      },
+      "title": "FileDiscoveryContract",
+      "type": "object"
+    },
+    "FileFailurePolicy": {
+      "enum": [
+        "fail_batch",
+        "quarantine",
+        "skip"
+      ],
+      "title": "FileFailurePolicy",
+      "type": "string"
+    },
+    "FileSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "file",
+          "default": "file",
+          "title": "Kind",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "file_format": {
+          "enum": [
+            "csv",
+            "json",
+            "json_lines",
+            "excel",
+            "parquet"
+          ],
+          "title": "File Format",
+          "type": "string"
+        },
+        "original_name": {
+          "minLength": 1,
+          "title": "Original Name",
+          "type": "string"
+        },
+        "sheet_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sheet Name"
+        },
+        "delimiter": {
+          "anyOf": [
+            {
+              "maxLength": 1,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delimiter"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "sample_limit": {
+          "default": 100000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Sample Limit",
+          "type": "integer"
+        },
+        "runtime": {
+          "$ref": "#/$defs/FileDiscoveryContract"
+        }
+      },
+      "required": [
+        "source_id",
+        "file_format",
+        "original_name",
+        "runtime"
+      ],
+      "title": "FileSource",
+      "type": "object"
+    },
+    "JoinDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "join_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Join Id",
+          "type": "string"
+        },
+        "left_source_id": {
+          "title": "Left Source Id",
+          "type": "string"
+        },
+        "right_source_id": {
+          "title": "Right Source Id",
+          "type": "string"
+        },
+        "join_type": {
+          "enum": [
+            "inner",
+            "left",
+            "right",
+            "full"
+          ],
+          "title": "Join Type",
+          "type": "string"
+        },
+        "left_keys": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Left Keys",
+          "type": "array"
+        },
+        "right_keys": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Right Keys",
+          "type": "array"
+        },
+        "expected_cardinality": {
+          "enum": [
+            "one_to_one",
+            "one_to_many",
+            "many_to_one",
+            "many_to_many"
+          ],
+          "title": "Expected Cardinality",
+          "type": "string"
+        },
+        "duplicate_column_policy": {
+          "default": "reject",
+          "enum": [
+            "prefix_source",
+            "reject"
+          ],
+          "title": "Duplicate Column Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "join_id",
+        "left_source_id",
+        "right_source_id",
+        "join_type",
+        "left_keys",
+        "right_keys",
+        "expected_cardinality"
+      ],
+      "title": "JoinDefinition",
+      "type": "object"
+    },
+    "OutputContract": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/OutputFormat"
+        },
+        "destination": {
+          "const": "artifact",
+          "default": "artifact",
+          "title": "Destination",
+          "type": "string"
+        },
+        "output_directory_parameter": {
+          "default": "output_dir",
+          "title": "Output Directory Parameter",
+          "type": "string"
+        },
+        "path_template": {
+          "default": "output/result",
+          "minLength": 1,
+          "title": "Path Template",
+          "type": "string"
+        },
+        "encoding": {
+          "const": "utf-8",
+          "default": "utf-8",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "null_representation": {
+          "default": "",
+          "title": "Null Representation",
+          "type": "string"
+        },
+        "write_mode": {
+          "$ref": "#/$defs/WriteMode",
+          "default": "overwrite"
+        },
+        "atomic_write": {
+          "default": true,
+          "title": "Atomic Write",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "title": "OutputContract",
+      "type": "object"
+    },
+    "OutputFormat": {
+      "enum": [
+        "csv",
+        "json_lines",
+        "parquet",
+        "sql_result"
+      ],
+      "title": "OutputFormat",
+      "type": "string"
+    },
+    "PiiClassification": {
+      "enum": [
+        "none",
+        "possible",
+        "confirmed"
+      ],
+      "title": "PiiClassification",
+      "type": "string"
+    },
+    "ProcessedFileTracking": {
+      "enum": [
+        "manifest",
+        "archive"
+      ],
+      "title": "ProcessedFileTracking",
+      "type": "string"
+    },
+    "SchemaCompatibilityPolicy": {
+      "enum": [
+        "strict",
+        "allow_extra_columns"
+      ],
+      "title": "SchemaCompatibilityPolicy",
+      "type": "string"
+    },
+    "SqlDialect": {
+      "enum": [
+        "postgresql",
+        "mysql",
+        "sql_server"
+      ],
+      "title": "SqlDialect",
+      "type": "string"
+    },
+    "TargetLanguage": {
+      "enum": [
+        "python",
+        "sql",
+        "javascript"
+      ],
+      "title": "TargetLanguage",
+      "type": "string"
+    },
+    "TargetRuntime": {
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "$ref": "#/$defs/TargetLanguage"
+        },
+        "sql_dialect": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SqlDialect"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "title": "TargetRuntime",
+      "type": "object"
+    },
+    "TransformationKind": {
+      "enum": [
+        "include",
+        "exclude",
+        "rename",
+        "cast",
+        "filter",
+        "sort",
+        "deduplicate",
+        "replace",
+        "handle_null",
+        "derive",
+        "aggregate",
+        "mask",
+        "join"
+      ],
+      "title": "TransformationKind",
+      "type": "string"
+    },
+    "TransformationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "order": {
+          "minimum": 1,
+          "title": "Order",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/TransformationKind"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "rule_id",
+        "order",
+        "kind",
+        "inputs"
+      ],
+      "title": "TransformationRule",
+      "type": "object"
+    },
+    "ValidationKind": {
+      "enum": [
+        "not_null",
+        "unique",
+        "range",
+        "regex",
+        "allowed_values"
+      ],
+      "title": "ValidationKind",
+      "type": "string"
+    },
+    "ValidationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "field": {
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ValidationKind"
+        },
+        "severity": {
+          "$ref": "#/$defs/ValidationSeverity",
+          "default": "error"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "rule_id",
+        "field",
+        "kind"
+      ],
+      "title": "ValidationRule",
+      "type": "object"
+    },
+    "ValidationSeverity": {
+      "enum": [
+        "warning",
+        "error"
+      ],
+      "title": "ValidationSeverity",
+      "type": "string"
+    },
+    "WriteMode": {
+      "enum": [
+        "overwrite",
+        "append"
+      ],
+      "title": "WriteMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "specification_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Specification Version",
+      "type": "string"
+    },
+    "specification_id": {
+      "format": "uuid",
+      "title": "Specification Id",
+      "type": "string"
+    },
+    "project_id": {
+      "format": "uuid",
+      "title": "Project Id",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "name": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "database": "#/$defs/DatabaseSource",
+            "file": "#/$defs/FileSource"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/FileSource"
+          },
+          {
+            "$ref": "#/$defs/DatabaseSource"
+          }
+        ]
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "fields": {
+      "items": {
+        "$ref": "#/$defs/FieldDefinition"
+      },
+      "minItems": 1,
+      "title": "Fields",
+      "type": "array"
+    },
+    "transformations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TransformationRule"
+      },
+      "title": "Transformations",
+      "type": "array"
+    },
+    "validations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ValidationRule"
+      },
+      "title": "Validations",
+      "type": "array"
+    },
+    "joins": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/JoinDefinition"
+      },
+      "title": "Joins",
+      "type": "array"
+    },
+    "error_policy": {
+      "$ref": "#/$defs/ErrorPolicy",
+      "default": "reject_record"
+    },
+    "output": {
+      "$ref": "#/$defs/OutputContract"
+    },
+    "target": {
+      "$ref": "#/$defs/TargetRuntime"
+    },
+    "confirmed_by": {
+      "minLength": 1,
+      "title": "Confirmed By",
+      "type": "string"
+    },
+    "confirmed_at": {
+      "format": "date-time",
+      "title": "Confirmed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "specification_id",
+    "project_id",
+    "revision",
+    "name",
+    "source_fingerprint",
+    "sources",
+    "fields",
+    "output",
+    "target",
+    "confirmed_by",
+    "confirmed_at"
+  ],
+  "title": "PipelineSpecification",
+  "type": "object"
+}

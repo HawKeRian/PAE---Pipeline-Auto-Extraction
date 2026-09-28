@@ -70,6 +70,7 @@ PAE ช่วยผู้ใช้เปลี่ยนตัวอย่าง�
 | PAE-FR-018 | Export package โดยไม่มี credential หรือ raw sample โดยค่าเริ่มต้น | Must |
 | PAE-FR-019 | ผูกผลลัพธ์กับ source fingerprint, schema และ specification revision | Must |
 | PAE-FR-020 | บันทึก audit events ของการกระทำสำคัญ | Must |
+| PAE-FR-021 | Generated file pipeline ต้องเป็น script เต็มที่ค้นหาและประมวลผลไฟล์อนาคตใน folder ตาม pattern ด้วย schema/failure/idempotency policy ที่ยืนยันแล้ว | Must |
 
 ## 6. Non-functional Requirements
 
@@ -85,6 +86,7 @@ PAE ช่วยผู้ใช้เปลี่ยนตัวอย่าง�
 | PAE-NFR-008 | Generated output ระหว่าง preview และทุก generator ผ่าน shared fixtures เดียวกัน |
 | PAE-NFR-009 | รองรับ Windows development ผ่าน conda env `ai_env` และ Python 3.11 |
 | PAE-NFR-010 | CI ต้องผ่าน lint, formatting, type checking, tests และ security checks ที่กำหนด |
+| PAE-NFR-011 | การรัน folder batch ซ้ำด้วยไฟล์เดิมและ state เดิมต้องไม่สร้างผลลัพธ์ซ้ำ |
 
 ## 7. Assumptions
 
@@ -93,6 +95,7 @@ PAE ช่วยผู้ใช้เปลี่ยนตัวอย่าง�
 - Database credentials ของ MVP ใช้บัญชี read-only และไม่ถูกเก็บแบบ plain text
 - Local Llama เป็นค่าเริ่มต้น; ดาวน์โหลดจาก Hugging Face เมื่อ local model ไม่ผ่าน benchmark และ license review
 - Generated code ต้องผ่าน human review ก่อนใช้ใน production
+- File pipeline ทำงานแบบ scan-on-run; scheduling หรือ continuous folder watching เป็นหน้าที่ของ Task Scheduler, cron หรือ orchestrator ภายนอก
 - ค่าที่มีผลต่อ scope และ security ใน `docs/OPEN_QUESTIONS.md` ยังต้องได้รับ stakeholder approval
 
 ## 8. Constraints

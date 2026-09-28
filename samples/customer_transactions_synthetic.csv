@@ -1,0 +1,5 @@
+cust_id,amount,created_at,status,email,notes
+C-1001,"12,450.00",26/09/2026,ACTIVE,somchai@example.com,team-a
+C-1002,"8,900.50",2026-09-25,ACTIVE,nalida@example.com,
+C-1002,"8,900.50",2026-09-25,ACTIVE,nalida@example.com,retry
+C-1003,"1,250",24/09/2026,INACTIVE,,

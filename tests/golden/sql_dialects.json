@@ -1,0 +1,5 @@
+{
+  "postgresql": {"identifier": "\"orders\"", "hash": "DIGEST", "null_order": "NULLS LAST"},
+  "mysql": {"identifier": "`orders`", "hash": "SHA2", "null_order": "CASE WHEN"},
+  "sql_server": {"identifier": "\"orders\"", "hash": "HASHBYTES", "null_order": "CASE WHEN"}
+}

@@ -56,6 +56,20 @@
 | SQL query text/result contract | MVP Required | 4 | Dialect-specific |
 | Write to destination database | Deferred | - | Requires mutation and credential policy |
 
+## Generated File Runtime
+
+| Capability | Approved scope | Notes |
+|---|---|---|
+| Scan input folder on each run | MVP Required | Runtime receives `--input-dir` |
+| Filename glob pattern | MVP Required | Relative, bounded pattern such as `*.csv` |
+| Deterministic file ordering | MVP Required | Path ascending for reproducibility |
+| Schema compatibility check | MVP Required | Strict by default; optional allowance for extra columns |
+| Required/optional columns | MVP Required | Missing required columns follow failure policy |
+| Quarantine/fail/skip policy | MVP Required | Quarantine is default |
+| Processed-file tracking | MVP Required | Manifest/checksum or archive policy prevents duplicates |
+| Execution summary and exit code | MVP Required | Supports scheduler/orchestrator integration |
+| Continuous folder watcher | Deferred | Use external scheduler/orchestrator for MVP |
+
 ## Delivery Decision
 
 สร้าง vertical slice ก่อน: `CSV → profiling → confirmed schema/specification → preview → Python generation → ZIP export` จากนั้นจึงขยาย capability ตามลำดับในตาราง

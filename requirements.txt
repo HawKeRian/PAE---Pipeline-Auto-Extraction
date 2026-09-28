@@ -1,12 +1,33 @@
 # Runtime — FastAPI provides the typed HTTP API; Uvicorn serves the ASGI app.
 fastapi==0.141.1
 uvicorn==0.54.0
+pydantic==2.13.5
 
 # Runtime configuration — validates environment-based settings.
 pydantic-settings==2.15.0
 
-# Test and coverage — HTTPX is required by FastAPI/Starlette TestClient.
+# Production API-backed UI templates and multipart file uploads.
+Jinja2==3.1.6
+python-multipart==0.0.32
+
+# File ingestion — Excel and Parquet readers; CSV/JSON use the Python standard library.
+openpyxl==3.1.5
+pyarrow==25.0.1
+
+# Database ingestion — parsed read-only SQL plus drivers for the three MVP databases.
+sqlglot==30.19.0
+psycopg[binary]==3.3.6
+PyMySQL==1.2.3
+pyodbc==5.3.0
+
+# Sandbox resource monitoring and process-tree cleanup across Windows/Linux.
+psutil==7.2.2
+types-psutil==7.2.2.20260906
+
+# Local AI runtime — HTTPX calls the local Ollama API without a cloud dependency.
 httpx==0.28.1
+
+# Test and coverage.
 pytest==9.1.1
 pytest-cov==7.1.0
 
@@ -14,6 +35,7 @@ pytest-cov==7.1.0
 ruff==0.16.9
 mypy==2.3.1
 pre-commit==4.6.2
+build==1.3.0
 
 # Security checks for committed secrets and Python dependencies.
 detect-secrets==1.5.0

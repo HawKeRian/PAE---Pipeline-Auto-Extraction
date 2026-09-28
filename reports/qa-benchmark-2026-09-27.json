@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-09-27T11:48:44.504542+00:00",
+  "reference_machine": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.16",
+    "cpu_logical": 12,
+    "memory_total_bytes": 34199556096
+  },
+  "workloads": {
+    "profiling_100000_rows": {
+      "runs": 5,
+      "median_seconds": 3.117792,
+      "p95_seconds": 3.706924,
+      "maximum_seconds": 3.706924,
+      "threshold_seconds": 60,
+      "passed": true
+    },
+    "preview_10000_rows": {
+      "runs": 5,
+      "median_seconds": 0.260286,
+      "p95_seconds": 0.310074,
+      "maximum_seconds": 0.310074,
+      "threshold_seconds": 5,
+      "passed": true
+    },
+    "python_generation": {
+      "runs": 20,
+      "median_seconds": 0.001029,
+      "p95_seconds": 0.001613,
+      "maximum_seconds": 0.001759,
+      "threshold_seconds": 60,
+      "passed": true
+    },
+    "health_endpoint": {
+      "runs": 100,
+      "median_seconds": 0.004996,
+      "p95_seconds": 0.007657,
+      "maximum_seconds": 0.034439,
+      "threshold_seconds": 1,
+      "passed": true
+    }
+  },
+  "process_memory": {
+    "rss_before_bytes": 94515200,
+    "rss_after_bytes": 144818176
+  },
+  "all_thresholds_passed": true
+}

@@ -16,6 +16,7 @@ Project Owner อนุมัติรายการต่อไปนี้เ
 | OQ-010 | Authentication | Local development identity ก่อน; production mechanism ต้องตัดสินใน Phase 2 | Approved baseline |
 | OQ-011 | Generated tests | สร้าง unit tests และ shared fixture checks พร้อม package | Adopted |
 | OQ-012 | Model acquisition | ประเมิน local models ก่อน; Hugging Face download ต้องผ่าน benchmark need, license และ hardware review | Adopted |
+| OQ-013 | การอ่านไฟล์ในอนาคต | Generated script ใช้ scan-on-run สำหรับทุกไฟล์ที่ตรง pattern ใน folder, ตรวจ schema และกันไฟล์ซ้ำ; continuous watcher deferred | Approved baseline |
 
 ## Decisions That Block Architecture or Security
 

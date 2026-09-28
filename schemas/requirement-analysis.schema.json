@@ -1,0 +1,168 @@
+{
+  "$defs": {
+    "TransformationDraft": {
+      "additionalProperties": false,
+      "description": "One unconfirmed transformation proposed by the model.",
+      "properties": {
+        "rule_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "order": {
+          "minimum": 1,
+          "title": "Order",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/TransformationKind"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "rule_id",
+        "order",
+        "kind",
+        "inputs",
+        "output",
+        "parameters"
+      ],
+      "title": "TransformationDraft",
+      "type": "object"
+    },
+    "TransformationKind": {
+      "enum": [
+        "include",
+        "exclude",
+        "rename",
+        "cast",
+        "filter",
+        "sort",
+        "deduplicate",
+        "replace",
+        "handle_null",
+        "derive",
+        "aggregate",
+        "mask",
+        "join"
+      ],
+      "title": "TransformationKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-validated AI result which still requires user confirmation.",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "needs_clarification",
+        "rejected"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "transformations": {
+      "items": {
+        "$ref": "#/$defs/TransformationDraft"
+      },
+      "title": "Transformations",
+      "type": "array"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "clarification_questions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Clarification Questions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "transformations",
+    "confidence",
+    "warnings",
+    "clarification_questions"
+  ],
+  "title": "RequirementAnalysis",
+  "type": "object"
+}

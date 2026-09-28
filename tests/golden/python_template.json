@@ -1,0 +1,12 @@
+{
+  "sha256_uint64": [11245318915228898252, 4774601599614637661, 15654690687893877138, 4159910117816788663],
+  "files": [
+    "README.md",
+    "config.example.env",
+    "pipeline.py",
+    "pipeline_spec.json",
+    "requirements.txt",
+    "runtime_core.py",
+    "tests/test_pipeline.py"
+  ]
+}

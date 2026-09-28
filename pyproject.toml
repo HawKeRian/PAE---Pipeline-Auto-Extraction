@@ -12,10 +12,16 @@ requires-python = ">=3.11,<3.12"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+pae = ["templates/*.html", "static/*"]
+
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config --cov=pae --cov-report=term-missing --cov-fail-under=80"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+    "integration: tests that require explicitly configured disposable database services",
+]
 
 [tool.coverage.run]
 branch = true

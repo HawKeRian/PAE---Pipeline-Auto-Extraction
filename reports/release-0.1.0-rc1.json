@@ -1,0 +1,34 @@
+{
+  "release": "0.1.0-rc1",
+  "built_at": "2026-09-28T18:58:08+07:00",
+  "python": "3.11.16",
+  "artifacts": [
+    {
+      "path": "dist/pipeline_auto_extraction-0.1.0-py3-none-any.whl",
+      "sha256": "1546760fdac5957dd1febc5c952889afc2a6644247eb4440fe489e29566f2a6d"
+    },
+    {
+      "path": "dist/pipeline_auto_extraction-0.1.0.tar.gz",
+      "sha256": "dfade6241fcd8194c4df73b1394df7b19b3cf8c142b6c19c9296cbf9c6550515"
+    }
+  ],
+  "container": {
+    "tag": "localhost/pae:0.1.0-rc1",
+    "image_id": "8eafde6d5f555159c4c5c562206b01452973dad4e2bb22c27b4333cab7e79477",
+    "runs_as_non_root": true,
+    "smoke_test": "passed",
+    "restart_with_persistent_volumes": "passed"
+  },
+  "quality": {
+    "tests_passed": 180,
+    "tests_skipped": 3,
+    "coverage_percent": 86.12,
+    "postgresql_tls_integration": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "type_check": "passed",
+    "dependency_vulnerabilities": 0,
+    "source_secret_findings": 0
+  },
+  "release_decision": "technical_go_for_controlled_pilot_public_release_no_go_pending_external_pilot"
+}
