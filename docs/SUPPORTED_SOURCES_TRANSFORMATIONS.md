@@ -5,7 +5,7 @@
 | Source | Status | Notes |
 |---|---|---|
 | CSV, JSON, JSON Lines | Supported | Bounded sample; reusable folder batch runtime |
-| XLSX | Supported | Safe ZIP inspection; explicit sheet when multiple |
+| XLSX | Supported | Safe ZIP inspection; bounded summaries of every Sheet, then explicit selection |
 | Parquet | Supported | Bounded Arrow batches |
 | PostgreSQL, MySQL, SQL Server | Supported | TLS/read-only/host policy; secrets by reference |
 

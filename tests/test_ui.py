@@ -59,6 +59,9 @@ async def test_ui_javascript_calls_real_versioned_apis_and_uses_session_storage(
 
     assert response.status_code == 200
     assert "/file-sources" in response.text
+    assert "/select-sheet" in response.text
+    assert "sheet_selection_required" in response.text
+    assert "workbook-sheet" in response.text
     assert "/schema/confirm" in response.text
     assert "/requirement-proposals" in response.text
     assert "/preview" in response.text

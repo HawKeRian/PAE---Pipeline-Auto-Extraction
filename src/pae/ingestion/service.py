@@ -31,12 +31,16 @@ from pae.ingestion.models import (
     NormalizedFileMetadata,
     RuntimeSuggestion,
     StoredIngestion,
+    WorkbookInspection,
+    WorkbookSheetSummary,
 )
 from pae.persistence.errors import (
+    ApplicationError,
     EncodingInvalid,
     FileContentInvalid,
     FileTypeUnsupported,
     IngestionLimitExceeded,
+    ResourceNotFound,
     SheetSelectionRequired,
     UnsafeUpload,
     UploadTooLarge,
@@ -146,6 +150,105 @@ class FileIngestionService:
             expires_at=expires_at,
             sample_rows=tuple(rows),
         )
+
+    def inspect_workbook(
+        self,
+        filename: str,
+        content: bytes,
+        content_type: str | None,
+        *,
+        sample_row_limit: int = 100,
+    ) -> WorkbookInspection:
+        """Return bounded, value-free summaries so a sheet can be selected after upload."""
+
+        safe_name, _, file_format = self._validate_envelope(filename, content, content_type)
+        if file_format != "excel":
+            raise FileTypeUnsupported("Workbook inspection is available only for XLSX files.")
+        try:
+            workbook = openpyxl.load_workbook(
+                io.BytesIO(content), read_only=True, data_only=False, keep_links=False
+            )
+        except Exception as exc:
+            raise FileContentInvalid("The XLSX workbook could not be read.") from exc
+        try:
+            names = tuple(workbook.sheetnames)
+            if not names:
+                raise FileContentInvalid("The workbook does not contain a worksheet.")
+            per_sheet_limit = min(
+                sample_row_limit,
+                self.max_sample_rows,
+                max(1, self.max_sample_rows // len(names)),
+            )
+            summaries: list[WorkbookSheetSummary] = []
+            for name in names:
+                worksheet = workbook[name]
+                total_rows = max(0, int(worksheet.max_row or 0) - 1)
+                try:
+                    rows, _ = self._read_excel_worksheet(workbook, name, per_sheet_limit)
+                    profiles = self._profile(rows)
+                    columns = tuple(profile.name for profile in profiles)
+                    summaries.append(
+                        WorkbookSheetSummary(
+                            name=name,
+                            visibility=worksheet.sheet_state,
+                            status="ready" if columns else "empty",
+                            sampled_rows=len(rows),
+                            total_rows=total_rows,
+                            column_count=len(columns),
+                            columns=columns,
+                        )
+                    )
+                except ApplicationError as exc:
+                    summaries.append(
+                        WorkbookSheetSummary(
+                            name=name,
+                            visibility=worksheet.sheet_state,
+                            status="empty" if total_rows == 0 else "invalid",
+                            sampled_rows=0,
+                            total_rows=total_rows,
+                            column_count=0,
+                            warning=exc.message,
+                        )
+                    )
+            return WorkbookInspection(
+                original_name=safe_name,
+                size_bytes=len(content),
+                sha256=hashlib.sha256(content).hexdigest(),
+                sheets=tuple(summaries),
+            )
+        except ApplicationError:
+            raise
+        except Exception as exc:
+            raise FileContentInvalid("The XLSX workbook could not be inspected.") from exc
+        finally:
+            workbook.close()
+
+    def store_pending(
+        self, filename: str, content: bytes, content_type: str | None
+    ) -> tuple[str, datetime]:
+        """Store one validated workbook while the user chooses a worksheet."""
+
+        _, suffix, file_format = self._validate_envelope(filename, content, content_type)
+        if file_format != "excel":
+            raise FileTypeUnsupported("Pending sheet selection is available only for XLSX files.")
+        self.storage_root.mkdir(parents=True, exist_ok=True)
+        stored_name = f"pending_{uuid4().hex}{suffix}"
+        target = (self.storage_root / stored_name).resolve()
+        if target.parent != self.storage_root:
+            raise UnsafeUpload("The generated storage path escaped the sample directory.")
+        with target.open("xb") as output:
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+        return stored_name, datetime.now(UTC) + timedelta(hours=self.retention_hours)
+
+    def read_stored(self, storage_ref: str) -> bytes:
+        """Read a previously authorized pending upload from bounded local storage."""
+
+        try:
+            return self._resolve_ref(storage_ref).read_bytes()
+        except FileNotFoundError as exc:
+            raise ResourceNotFound("Pending workbook was not found or has expired.") from exc
 
     def discard(self, storage_ref: str) -> None:
         target = self._resolve_ref(storage_ref)
@@ -350,28 +453,34 @@ class FileIngestionService:
                     "The selected sheet does not exist.",
                     details={"available_sheets": list(sheets)},
                 )
-            worksheet = workbook[sheet_name]
-            iterator = worksheet.iter_rows(values_only=True)
-            first = next(iterator, None)
-            headers = self._validate_headers(
-                [str(value).strip() if value is not None else "" for value in first or ()]
-            )
-            rows: list[dict[str, Any]] = []
-            truncated = False
-            for values in iterator:
-                if len(rows) >= row_limit:
-                    truncated = True
-                    break
-                padded = (*values, *((None,) * max(0, len(headers) - len(values))))
-                rows.append(dict(zip(headers, padded[: len(headers)], strict=True)))
-            return rows, {
-                "sheet_name": sheet_name,
-                "available_sheets": sheets,
-                "total_rows": None if truncated else len(rows),
-                "truncated": truncated,
-            }
+            return self._read_excel_worksheet(workbook, sheet_name, row_limit)
         finally:
             workbook.close()
+
+    def _read_excel_worksheet(
+        self, workbook: Any, sheet_name: str, row_limit: int
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        worksheet = workbook[sheet_name]
+        iterator = worksheet.iter_rows(values_only=True)
+        first = next(iterator, None)
+        headers = self._validate_headers(
+            [str(value).strip() if value is not None else "" for value in first or ()]
+        )
+        rows: list[dict[str, Any]] = []
+        truncated = False
+        for values in iterator:
+            if len(rows) >= row_limit:
+                truncated = True
+                break
+            padded = (*values, *((None,) * max(0, len(headers) - len(values))))
+            rows.append(dict(zip(headers, padded[: len(headers)], strict=True)))
+        total_rows = max(0, int(worksheet.max_row or 0) - 1)
+        return rows, {
+            "sheet_name": sheet_name,
+            "available_sheets": tuple(workbook.sheetnames),
+            "total_rows": total_rows,
+            "truncated": truncated or total_rows > len(rows),
+        }
 
     def _read_parquet(
         self, content: bytes, row_limit: int

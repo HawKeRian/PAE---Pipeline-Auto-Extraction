@@ -530,3 +530,23 @@ def test_missing_sample_validation_artifact_and_unconfirmed_job_fail_closed(
         repository.get_sample_reference(owner, project.project_id, str(uuid4()))
     with pytest.raises(ResourceNotFound):
         repository.get_artifact_manifest(owner, project.project_id, str(uuid4()))
+
+
+def test_pending_workbook_promotion_is_atomic(repository: Repository, owner: Principal) -> None:
+    project = repository.create_project(owner, "Workbook")
+    expiry = datetime.now(UTC) + timedelta(hours=1)
+    pending = repository.register_sample_reference(
+        owner, project.project_id, "pending_workbook.xlsx", expiry
+    )
+    arguments = (owner, project.project_id, {"file_format": "excel"}, "selected.xlsx", expiry)
+    revision, _ = repository.save_ingested_file(*arguments, pending_sample_id=pending)
+    assert revision == 1
+    with pytest.raises(ResourceNotFound):
+        repository.save_ingested_file(*arguments, pending_sample_id=pending)
+    assert repository.get_project(owner, project.project_id).current_revision == 1
+    expired = repository.register_sample_reference(
+        owner, project.project_id, "pending_expired.xlsx", datetime.now(UTC) - timedelta(hours=1)
+    )
+    with pytest.raises(ResourceNotFound):
+        repository.save_ingested_file(*arguments, pending_sample_id=expired)
+    assert repository.get_project(owner, project.project_id).current_revision == 1

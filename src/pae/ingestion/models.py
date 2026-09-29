@@ -13,6 +13,24 @@ from pae.domain.models import StrictModel
 FileFormat = Literal["csv", "json", "json_lines", "excel", "parquet"]
 
 
+class WorkbookSheetSummary(StrictModel):
+    name: str = Field(min_length=1)
+    visibility: Literal["visible", "hidden", "veryHidden"]
+    status: Literal["ready", "empty", "invalid"]
+    sampled_rows: int = Field(ge=0)
+    total_rows: int = Field(ge=0)
+    column_count: int = Field(ge=0)
+    columns: tuple[str, ...] = ()
+    warning: str | None = None
+
+
+class WorkbookInspection(StrictModel):
+    original_name: str
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    sheets: tuple[WorkbookSheetSummary, ...] = Field(min_length=1)
+
+
 class IngestionOptions(StrictModel):
     encoding: str | None = None
     delimiter: str | None = None

@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import suppress
 from dataclasses import asdict
 from io import BytesIO
+from pathlib import Path
 from typing import Annotated, Any, cast
 
 from fastapi import (
@@ -19,7 +20,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import Field
 
 from pae import __version__
@@ -34,7 +35,7 @@ from pae.connectors.service import DatabaseConnectorService
 from pae.domain.enums import JobStatus
 from pae.domain.models import PipelineSpecification, StrictModel
 from pae.exporting import ArtifactExportService
-from pae.ingestion.models import IngestionOptions
+from pae.ingestion.models import IngestionOptions, StoredIngestion
 from pae.ingestion.service import FileIngestionService
 from pae.persistence.errors import (
     AuthenticationRequired,
@@ -84,6 +85,14 @@ class ExportCreate(StrictModel):
     model_version: str | None = Field(default=None, max_length=200)
 
 
+class WorkbookSheetSelection(StrictModel):
+    original_name: str = Field(min_length=1, max_length=255)
+    sheet_name: str = Field(min_length=1, max_length=255)
+    filename_pattern: str | None = Field(default=None, max_length=255)
+    recursive: bool = False
+    sample_row_limit: int = Field(default=10_000, ge=1, le=100_000)
+
+
 def _repository(request: Request) -> Repository:
     return cast(Repository, request.app.state.repository)
 
@@ -130,6 +139,33 @@ def _parse_etag(value: str) -> int:
         return int(value.strip('"'))
     except ValueError as exc:
         raise RevisionConflict("If-Match must contain the current numeric ETag.") from exc
+
+
+def _profile_stored_ingestion(
+    stored: StoredIngestion, profiler: SchemaProfiler
+) -> tuple[ProfilingResult, dict[str, Any]]:
+    profile = profiler.profile(stored.sample_rows, total_rows=stored.analysis.metadata.total_rows)
+    if stored.analysis.metadata.truncated:
+        profile = profile.model_copy(
+            update={
+                "truncated": True,
+                "warnings": (*profile.warnings, "Profile metrics use a bounded row sample."),
+            }
+        )
+    source_config = {
+        "file_format": stored.analysis.metadata.file_format,
+        "original_name": stored.analysis.metadata.original_name,
+        "content_type": stored.analysis.metadata.content_type,
+        "size_bytes": stored.analysis.metadata.size_bytes,
+        "sha256": stored.analysis.metadata.sha256,
+        "encoding": stored.analysis.metadata.encoding,
+        "delimiter": stored.analysis.metadata.delimiter,
+        "sheet_name": stored.analysis.metadata.sheet_name,
+        "runtime": stored.analysis.runtime.model_dump(mode="json"),
+        "columns": [column.model_dump(mode="json") for column in stored.analysis.metadata.columns],
+        "profile": profile.model_dump(mode="json"),
+    }
+    return profile, source_config
 
 
 PrincipalDependency = Annotated[Principal, Depends(_principal)]
@@ -257,7 +293,11 @@ def create_api_router() -> APIRouter:
         )
         return {"revision": revision}
 
-    @router.post("/projects/{project_id}/file-sources", status_code=status.HTTP_201_CREATED)
+    @router.post(
+        "/projects/{project_id}/file-sources",
+        status_code=status.HTTP_201_CREATED,
+        response_model=None,
+    )
     async def analyze_file_source(
         project_id: str,
         request: Request,
@@ -269,7 +309,7 @@ def create_api_router() -> APIRouter:
         filename_pattern: Annotated[str | None, Form()] = None,
         recursive: Annotated[bool, Form()] = False,
         sample_row_limit: Annotated[int, Form(ge=1, le=100_000)] = 10_000,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | JSONResponse:
         repository = _repository(request)
         repository.get_project(principal, project_id, Permission.EDIT)
         ingestion = _ingestion(request)
@@ -283,32 +323,35 @@ def create_api_router() -> APIRouter:
             recursive=recursive,
             sample_row_limit=sample_row_limit,
         )
-        stored = ingestion.ingest(file.filename or "", content, file.content_type, options)
-        profile = _profiler(request).profile(
-            stored.sample_rows, total_rows=stored.analysis.metadata.total_rows
-        )
-        if stored.analysis.metadata.truncated:
-            profile = profile.model_copy(
-                update={
-                    "truncated": True,
-                    "warnings": (*profile.warnings, "Profile metrics use a bounded row sample."),
-                }
+        if Path(file.filename or "").suffix.lower() == ".xlsx" and sheet_name is None:
+            inspection = ingestion.inspect_workbook(
+                file.filename or "",
+                content,
+                file.content_type,
+                sample_row_limit=min(sample_row_limit, 100),
             )
-        source_config = {
-            "file_format": stored.analysis.metadata.file_format,
-            "original_name": stored.analysis.metadata.original_name,
-            "content_type": stored.analysis.metadata.content_type,
-            "size_bytes": stored.analysis.metadata.size_bytes,
-            "sha256": stored.analysis.metadata.sha256,
-            "encoding": stored.analysis.metadata.encoding,
-            "delimiter": stored.analysis.metadata.delimiter,
-            "sheet_name": stored.analysis.metadata.sheet_name,
-            "runtime": stored.analysis.runtime.model_dump(mode="json"),
-            "columns": [
-                column.model_dump(mode="json") for column in stored.analysis.metadata.columns
-            ],
-            "profile": profile.model_dump(mode="json"),
-        }
+            if len(inspection.sheets) > 1:
+                storage_ref, expires_at = ingestion.store_pending(
+                    file.filename or "", content, file.content_type
+                )
+                try:
+                    upload_id = repository.register_sample_reference(
+                        principal, project_id, storage_ref, expires_at
+                    )
+                except Exception:
+                    ingestion.discard(storage_ref)
+                    raise
+                return JSONResponse(
+                    status_code=status.HTTP_202_ACCEPTED,
+                    content={
+                        "status": "sheet_selection_required",
+                        "upload_id": upload_id,
+                        "inspection": inspection.model_dump(mode="json"),
+                        "expires_at": expires_at.isoformat(),
+                    },
+                )
+        stored = ingestion.ingest(file.filename or "", content, file.content_type, options)
+        profile, source_config = _profile_stored_ingestion(stored, _profiler(request))
         try:
             revision, sample_id = repository.save_ingested_file(
                 principal,
@@ -320,6 +363,55 @@ def create_api_router() -> APIRouter:
         except Exception:
             ingestion.discard(stored.storage_ref)
             raise
+        return {
+            "revision": revision,
+            "sample_id": sample_id,
+            "analysis": stored.analysis.model_dump(mode="json"),
+            "profile": profile.model_dump(mode="json"),
+            "expires_at": stored.expires_at,
+        }
+
+    @router.post(
+        "/projects/{project_id}/file-sources/{upload_id}/select-sheet",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def select_workbook_sheet(
+        project_id: str,
+        upload_id: str,
+        body: WorkbookSheetSelection,
+        request: Request,
+        principal: PrincipalDependency,
+    ) -> dict[str, Any]:
+        repository = _repository(request)
+        repository.get_project(principal, project_id, Permission.EDIT)
+        ingestion = _ingestion(request)
+        pending_ref = repository.get_pending_sample_reference(principal, project_id, upload_id)
+        content = ingestion.read_stored(pending_ref)
+        stored = ingestion.ingest(
+            body.original_name,
+            content,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            IngestionOptions(
+                sheet_name=body.sheet_name,
+                filename_pattern=body.filename_pattern,
+                recursive=body.recursive,
+                sample_row_limit=body.sample_row_limit,
+            ),
+        )
+        profile, source_config = _profile_stored_ingestion(stored, _profiler(request))
+        try:
+            revision, sample_id = repository.save_ingested_file(
+                principal,
+                project_id,
+                source_config,
+                stored.storage_ref,
+                stored.expires_at,
+                pending_sample_id=upload_id,
+            )
+        except Exception:
+            ingestion.discard(stored.storage_ref)
+            raise
+        ingestion.discard(pending_ref)
         return {
             "revision": revision,
             "sample_id": sample_id,

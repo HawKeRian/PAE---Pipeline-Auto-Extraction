@@ -129,6 +129,22 @@ def test_excel_requires_sheet_selection_and_treats_formula_as_data(
     assert columns["formula_text"].inferred_type == "string"
 
 
+def test_excel_inspection_summarizes_all_sheets_without_values(
+    service: FileIngestionService,
+) -> None:
+    content = xlsx_bytes(multiple_sheets=True)
+    inspection = service.inspect_workbook(
+        "orders.xlsx",
+        content,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    assert [sheet.name for sheet in inspection.sheets] == ["Orders", "Archive"]
+    assert inspection.sheets[0].status == "ready"
+    assert inspection.sheets[0].columns == ("order_id", "amount", "formula_text")
+    assert inspection.sheets[1].status == "empty"
+    assert "A-1" not in inspection.model_dump_json()
+
+
 def test_parquet_signature_and_rows(service: FileIngestionService) -> None:
     stored = service.ingest(
         "orders.parquet",
@@ -421,3 +437,12 @@ def test_discard_cleanup_and_storage_reference_safety(
 )
 def test_type_inference(values: list[object], expected: DataType) -> None:
     assert FileIngestionService._infer_type(values) == expected
+
+
+def test_excel_inspection_reports_corrupt_workbook(service: FileIngestionService) -> None:
+    content = io.BytesIO()
+    with zipfile.ZipFile(content, "w") as archive:
+        archive.writestr("[Content_Types].xml", "invalid XML")
+        archive.writestr("xl/workbook.xml", "invalid XML")
+    with pytest.raises(FileContentInvalid):
+        service.inspect_workbook("broken.xlsx", content.getvalue(), None)

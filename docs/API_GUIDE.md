@@ -8,6 +8,7 @@ Main resources:
 
 - `POST/GET /projects`, `GET/PATCH/DELETE /projects/{id}`
 - `POST /projects/{id}/file-sources` and `/database-sources/*`
+- `POST /projects/{id}/file-sources/{upload_id}/select-sheet` for a pending multi-sheet XLSX
 - `GET /projects/{id}/schema`, `POST /schema/confirm`
 - `POST /requirement-proposals`, `POST /specification/confirm-from-proposal`
 - `GET /specification/versions`, `POST /preview`

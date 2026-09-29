@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 from zipfile import ZipFile
 
+import openpyxl
 from fastapi.testclient import TestClient
 
 from pae.ai.models import RequirementAnalysis, TransformationDraft, ValidationDraft
@@ -530,6 +531,95 @@ def test_file_upload_api_returns_metadata_without_raw_rows(tmp_path: Path) -> No
     )
     assert storage_ref != "customers.csv"
     assert (tmp_path / "data" / "samples" / storage_ref).read_bytes() == content
+
+
+def test_excel_upload_is_inspected_once_then_selected_without_reupload(tmp_path: Path) -> None:
+    client, repository = client_and_repository(tmp_path)
+    project_id = client.post(
+        "/api/v1/projects", json={"name": "Workbook"}, headers=authorization(OWNER_TOKEN)
+    ).json()["project_id"]
+    workbook = openpyxl.Workbook()
+    orders = workbook.active
+    orders.title = "Orders"
+    orders.append(["order_id", "amount"])
+    orders.append(["A-1", 10])
+    customers = workbook.create_sheet("Customers")
+    customers.append(["customer_id", "email"])
+    customers.append(["C-1", "user@example.com"])
+    content = BytesIO()
+    workbook.save(content)
+    workbook.close()
+
+    inspected = client.post(
+        f"/api/v1/projects/{project_id}/file-sources",
+        files={
+            "file": (
+                "business.xlsx",
+                content.getvalue(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+        data={"filename_pattern": "*.xlsx"},
+        headers=authorization(OWNER_TOKEN),
+    )
+    assert inspected.status_code == 202
+    pending = inspected.json()
+    assert pending["status"] == "sheet_selection_required"
+    assert [sheet["name"] for sheet in pending["inspection"]["sheets"]] == [
+        "Orders",
+        "Customers",
+    ]
+    assert "A-1" not in inspected.text and "user@example.com" not in inspected.text
+    project = repository.get_project(repository.authenticate(OWNER_TOKEN), project_id)
+    assert project.current_revision == 0
+
+    denied = client.post(
+        f"/api/v1/projects/{project_id}/file-sources/{pending['upload_id']}/select-sheet",
+        json={"original_name": "business.xlsx", "sheet_name": "Orders"},
+        headers=authorization(OTHER_TOKEN),
+    )
+    assert denied.status_code == 404
+
+    missing = client.post(
+        f"/api/v1/projects/{project_id}/file-sources/{pending['upload_id']}/select-sheet",
+        json={"original_name": "business.xlsx", "sheet_name": "Missing"},
+        headers=authorization(OWNER_TOKEN),
+    )
+    assert missing.status_code == 422
+    assert missing.json()["error"]["code"] == "SHEET_SELECTION_REQUIRED"
+
+    selected = client.post(
+        f"/api/v1/projects/{project_id}/file-sources/{pending['upload_id']}/select-sheet",
+        json={
+            "original_name": "business.xlsx",
+            "sheet_name": "Customers",
+            "filename_pattern": "*.xlsx",
+        },
+        headers=authorization(OWNER_TOKEN),
+    )
+    assert selected.status_code == 201
+    body = selected.json()
+    assert body["revision"] == 1
+    assert body["analysis"]["metadata"]["sheet_name"] == "Customers"
+    assert [field["name"] for field in body["profile"]["fields"]] == [
+        "customer_id",
+        "email",
+    ]
+    sample_files = list((tmp_path / "data" / "samples").iterdir())
+    assert len(sample_files) == 1
+    principal = repository.authenticate(OWNER_TOKEN)
+    assert repository.get_latest_source_config(principal, project_id)["config"]["sheet_name"] == (
+        "Customers"
+    )
+    for sample_id in (pending["upload_id"], body["sample_id"]):
+        repeated = client.post(
+            f"/api/v1/projects/{project_id}/file-sources/{sample_id}/select-sheet",
+            json={"original_name": "business.xlsx", "sheet_name": "Orders"},
+            headers=authorization(OWNER_TOKEN),
+        )
+        assert repeated.status_code == 404
+    assert repository.get_project(principal, project_id).current_revision == 1
+    assert len(list((tmp_path / "data" / "samples").iterdir())) == 1
 
 
 def test_file_upload_authorizes_before_storing(tmp_path: Path) -> None:

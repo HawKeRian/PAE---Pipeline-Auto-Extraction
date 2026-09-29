@@ -1,6 +1,6 @@
 "use strict";
 
-const state = { token: sessionStorage.getItem("paeToken"), project: null, revision: 0, profile: null, rows: [], proposal: null, artifact: null };
+const state = { token: sessionStorage.getItem("paeToken"), project: null, revision: 0, profile: null, rows: [], proposal: null, artifact: null, pendingWorkbook: null };
 const $ = (id) => document.getElementById(id);
 const toast = (message) => { $("toast").textContent = message; $("toast").classList.add("show"); setTimeout(() => $("toast").classList.remove("show"), 5000); };
 const busy = (button, value, label = "กำลังทำงาน…") => { button.disabled = value; if (value) { button.dataset.label = button.textContent; button.textContent = label; } else if (button.dataset.label) button.textContent = button.dataset.label; };
@@ -47,6 +47,7 @@ async function loadProjects() {
 }
 
 async function openProject(project) {
+  state.pendingWorkbook = null; $("source-result").replaceChildren();
   state.project = project; state.revision = project.current_revision; $("project-title").textContent = project.name;
   $("revision-state").textContent = `Revision ${project.current_revision} · ${project.specification_confirmed ? "Specification confirmed" : "รอการยืนยัน"}`;
   sessionStorage.setItem("paeProject", project.project_id); await loadArtifacts();
@@ -92,7 +93,44 @@ document.querySelectorAll("[data-step]").forEach((button) => button.addEventList
 
 $("project-form").addEventListener("submit", async (event) => { event.preventDefault(); try { const project = await api("/projects", { method: "POST", body: JSON.stringify({ name: $("project-name").value }) }); await loadProjects(); await openProject(project); } catch (error) { toast(error.message); } });
 
-$("upload-form").addEventListener("submit", async (event) => { event.preventDefault(); if (!state.project) return toast("เลือก Project ก่อน"); const button = event.submitter; busy(button, true, "กำลังอ่านและ profile…"); try { const file = $("source-file").files[0]; const form = new FormData(); form.append("file", file); form.append("filename_pattern", $("filename-pattern").value); const [result, rows] = await Promise.all([api(`/projects/${state.project.project_id}/file-sources`, { method: "POST", body: form }), parseLocalCsv(file)]); state.profile = result.profile; state.rows = rows; state.revision = result.revision; $("source-result").className = "result"; $("source-result").textContent = `อ่านสำเร็จ ${result.profile.sampled_rows} แถว · พบ ${result.profile.fields.length} columns`; renderSchema(result.profile); showStep(2); } catch (error) { $("source-result").textContent = `ผิดพลาด: ${error.message}`; toast(error.message); } finally { busy(button, false); } });
+function applyFileAnalysis(result, rows = []) {
+  state.pendingWorkbook = null; state.profile = result.profile; state.rows = rows; state.revision = result.revision;
+  const sheet = result.analysis.metadata.sheet_name ? ` · Sheet ${result.analysis.metadata.sheet_name}` : "";
+  $("source-result").className = "result";
+  $("source-result").textContent = `อ่านสำเร็จ ${result.profile.sampled_rows} แถว · พบ ${result.profile.fields.length} columns${sheet}`;
+  renderSchema(result.profile); showStep(2);
+}
+
+function renderWorkbookSelection(result) {
+  state.pendingWorkbook = result;
+  const projectId = state.project.project_id;
+  const container = $("source-result"); container.className = "result"; container.replaceChildren();
+  const title = document.createElement("h3"); title.textContent = `พบ ${result.inspection.sheets.length} Sheets — เลือก Sheet ที่ต้องการวิเคราะห์`;
+  const note = document.createElement("p"); note.textContent = "ระบบอ่านเฉพาะ header และตัวอย่างแบบจำกัด ยังไม่สร้าง revision จนกว่าคุณจะเลือก";
+  const options = document.createElement("div"); options.className = "sheet-picker";
+  let firstReady = true;
+  result.inspection.sheets.forEach((sheet) => {
+    const label = document.createElement("label"); label.className = `sheet-option ${sheet.status}`;
+    const radio = document.createElement("input"); radio.type = "radio"; radio.name = "workbook-sheet"; radio.value = sheet.name; radio.disabled = sheet.status !== "ready" || sheet.visibility !== "visible"; radio.checked = !radio.disabled && firstReady; if (radio.checked) firstReady = false;
+    const content = document.createElement("span"); const heading = document.createElement("strong"); heading.textContent = sheet.name;
+    const details = document.createElement("small"); details.textContent = sheet.status === "ready" ? `${sheet.total_rows} rows · ${sheet.column_count} columns · ${sheet.columns.join(", ")}` : `${sheet.status} · ${sheet.warning || "ไม่มีตารางข้อมูลที่พร้อมวิเคราะห์"}`;
+    if (sheet.visibility !== "visible") details.textContent += ` · ${sheet.visibility} (ไม่สามารถเลือกได้)`;
+    content.append(heading, details); label.append(radio, content); options.append(label);
+  });
+  const choose = document.createElement("button"); choose.type = "button"; choose.textContent = "วิเคราะห์ Sheet ที่เลือก"; choose.disabled = firstReady;
+  choose.addEventListener("click", async () => {
+    if (state.project?.project_id !== projectId || state.pendingWorkbook !== result) return;
+    const selected = container.querySelector('input[name="workbook-sheet"]:checked'); if (!selected) return;
+    busy(choose, true, "กำลังวิเคราะห์ Sheet…");
+    try {
+      const analyzed = await api(`/projects/${projectId}/file-sources/${result.upload_id}/select-sheet`, { method: "POST", body: JSON.stringify({ original_name: result.inspection.original_name, sheet_name: selected.value, filename_pattern: $("filename-pattern").value, sample_row_limit: 10000 }) });
+      if (state.project?.project_id === projectId && state.pendingWorkbook === result) applyFileAnalysis(analyzed);
+    } catch (error) { toast(error.message); } finally { busy(choose, false); }
+  });
+  container.append(title, note, options, choose);
+}
+
+$("upload-form").addEventListener("submit", async (event) => { event.preventDefault(); if (!state.project) return toast("เลือก Project ก่อน"); const button = event.submitter; busy(button, true, "กำลังอ่านและ profile…"); try { const file = $("source-file").files[0]; const form = new FormData(); form.append("file", file); form.append("filename_pattern", $("filename-pattern").value); const [result, rows] = await Promise.all([api(`/projects/${state.project.project_id}/file-sources`, { method: "POST", body: form }), parseLocalCsv(file)]); if (result.status === "sheet_selection_required") { renderWorkbookSelection(result); return; } applyFileAnalysis(result, rows); } catch (error) { $("source-result").textContent = `ผิดพลาด: ${error.message}`; toast(error.message); } finally { busy(button, false); } });
 
 $("database-form").addEventListener("submit", async (event) => { event.preventDefault(); if (!state.project) return toast("เลือก Project ก่อน"); const body = { database_type: $("db-type").value, host: $("db-host").value, port: Number($("db-port").value), database: $("db-name").value, username: $("db-user").value, connection_ref: $("db-ref").value, tls_mode: "verify_identity" }; try { await api(`/projects/${state.project.project_id}/database-sources/test`, { method: "POST", body: JSON.stringify(body) }); toast("เชื่อมต่อฐานข้อมูลสำเร็จ"); } catch (error) { toast(error.message); } });
 

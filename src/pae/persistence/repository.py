@@ -310,6 +310,8 @@ class Repository:
         config: dict[str, Any],
         storage_ref: str,
         expires_at: datetime,
+        *,
+        pending_sample_id: str | None = None,
     ) -> tuple[int, str]:
         """Atomically persist file metadata and its temporary object reference."""
 
@@ -319,6 +321,14 @@ class Repository:
         sample_id = str(uuid4())
         with self.database.transaction() as connection:
             row = self._authorized_project(connection, principal, project_id, Permission.EDIT)
+            if pending_sample_id is not None:
+                consumed = connection.execute(
+                    "DELETE FROM source_samples WHERE sample_id=? AND project_id=? "
+                    "AND expires_at>? AND object_ref GLOB 'pending_*.xlsx'",
+                    (pending_sample_id, project_id, _now()),
+                )
+                if consumed.rowcount != 1:
+                    raise ResourceNotFound("Pending workbook was not found or has expired.")
             revision = int(row["current_revision"]) + 1
             connection.execute(
                 "INSERT INTO source_configs(source_config_id, project_id, revision, kind, "
@@ -1037,6 +1047,16 @@ class Repository:
         if row is None:
             raise ResourceNotFound("Sample was not found.")
         return str(row["object_ref"])
+
+    def get_pending_sample_reference(
+        self, principal: Principal, project_id: str, sample_id: str
+    ) -> str:
+        """Resolve only uploads awaiting workbook sheet selection."""
+
+        storage_ref = self.get_sample_reference(principal, project_id, sample_id)
+        if not storage_ref.startswith("pending_") or not storage_ref.endswith(".xlsx"):
+            raise ResourceNotFound("Pending workbook was not found or has expired.")
+        return storage_ref
 
     def get_job_validation(
         self, principal: Principal, project_id: str, job_id: str

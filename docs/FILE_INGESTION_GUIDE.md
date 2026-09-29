@@ -11,7 +11,7 @@ never embedded as the future runtime input path.
 | CSV | `.csv` | `encoding`, `delimiter` |
 | JSON array/object | `.json` | `encoding` |
 | JSON Lines | `.jsonl`, `.ndjson` | `encoding` |
-| Excel | `.xlsx` | `sheet_name` |
+| Excel | `.xlsx` | inspect ทุก Sheet แบบ bounded แล้วเลือก `sheet_name` |
 | Parquet | `.parquet` | None |
 
 CSV encoding is detected from UTF-8 (with or without BOM), CP874, and Windows-1252 unless the
@@ -29,6 +29,25 @@ Authorization: Bearer <local token>
 
 The multipart field `file` is required. Optional form fields are `encoding`, `delimiter`,
 `sheet_name`, `filename_pattern`, `recursive`, and `sample_row_limit`.
+
+เมื่อ XLSX มีหลาย Sheet การอัปโหลดครั้งแรกตอบ `202 sheet_selection_required` พร้อมชื่อ Sheet,
+visibility, จำนวนแถว/columns และรายชื่อ header โดยไม่ส่งค่าจากเซลล์กลับไป UI ไฟล์ถูกเก็บชั่วคราว
+เพียงครั้งเดียวและยังไม่สร้าง revision ผู้ใช้เลือก Sheet ผ่าน
+`POST /projects/{project_id}/file-sources/{upload_id}/select-sheet`; จากนั้นระบบจึง profile,
+สร้าง revision และลบ pending object เดิม Sheet ว่าง, hidden หรือ header ไม่ถูกต้องจะแสดงเหตุผลและ
+ไม่สามารถเลือกได้ใน UI
+
+The selection request uses a JSON body, for example:
+
+```json
+{"original_name": "business.xlsx", "sheet_name": "Orders", "filename_pattern": "*.xlsx"}
+```
+
+It also accepts `recursive` and `sample_row_limit`. Successful selection returns `201` with
+the analysis below. Pending uploads expire under the sample retention policy; expired or
+already consumed upload IDs return `404`. Selection consumes the pending reference atomically
+with creation of the revision, so retries cannot create duplicate revisions. An explicit
+`sheet_name` on the initial upload still supports direct ingestion.
 
 The response contains:
 
